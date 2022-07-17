@@ -63,3 +63,9 @@ services:
     depends_on:
       - shadowmere
       - redis
+
+  shadowtest:
+    image: guamulo/shadowtest:latest
+    restart: always
+    ports:
+      - "7999:8080"

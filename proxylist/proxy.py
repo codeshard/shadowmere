@@ -1,7 +1,6 @@
 import requests
 from django.utils.timezone import now
-
-from shadowmere import settings
+from django.conf import settings
 
 
 def get_proxy_location(proxy_url):
@@ -25,10 +24,7 @@ def update_proxy_status(proxy):
         proxy.ip_address = ip_information.get("YourFuckingIPAddress")
         proxy.last_active = now()
         proxy.times_check_succeeded = proxy.times_check_succeeded + 1
-        if (
-            proxy.location != ip_information.get("YourFuckingLocation")
-            or proxy.location_country == ""
-        ):
+        if proxy.location != ip_information.get("YourFuckingLocation") or proxy.location_country == "":
             proxy.location = ip_information.get("YourFuckingLocation")
             proxy.location_country_code = ip_information.get("YourFuckingCountryCode")
             proxy.location_country = ip_information.get("YourFuckingCountry")

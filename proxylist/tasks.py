@@ -18,12 +18,12 @@ SUBSCRIPTION_TIMEOUT_SECONDS = 60
 
 @app.task(bind=True)
 def update_status(self):
-    print("Updating proxies status")
+    logging.info("Updating proxies status")
 
     try:
         req = requests.get("https://clients3.google.com/generate_204")
     except (SSLError, ConnectionError, ReadTimeout):
-        print("The Shadowmere host is having connection issues. Skipping test cycle.")
+        logging.error("The Shadowmere host is having connection issues. Skipping test cycle.")
         return
 
     if req.status_code == 204:
@@ -32,9 +32,9 @@ def update_status(self):
             executor.map(update_proxy_status, proxies)
             executor.shutdown(wait=True)
 
-        print("Proxy status checked")
+        logging.info("Proxy status checked")
 
-        print("Saving new status")
+        logging.info("Saving new status")
         for proxy in proxies:
             try:
                 proxy.save()
@@ -42,9 +42,9 @@ def update_status(self):
                 # This means the proxy is either a duplicate or no longer valid
                 proxy.delete()
 
-        print("Update completed")
+        logging.info("Update completed")
     else:
-        print("The Shadowmere host is having connection issues. Skipping test cycle.")
+        logging.error("The Shadowmere host is having connection issues. Skipping test cycle.")
 
 
 def decode_line(line):
@@ -67,7 +67,9 @@ def poll_subscriptions(self):
             try:
                 r = requests.get(subscription.url, timeout=SUBSCRIPTION_TIMEOUT_SECONDS)
                 if r.status_code != 200:
-                    error_message = f"We are facing issues getting this subscription {subscription.url} ({r.status_code} {r.text})"
+                    error_message = (
+                        f"We are facing issues getting this subscription {subscription.url} ({r.status_code} {r.text})"
+                    )
                     logging.warning(error_message)
                     subscription.alive = False
                     subscription.error_message = error_message[:10000]
@@ -75,11 +77,7 @@ def poll_subscriptions(self):
                     continue
                 if subscription.kind == Subscription.SubscriptionKind.PLAIN:
                     decoded_lines = [line.decode("utf-8") for line in r.iter_lines()]
-                    proxies_lists.append(
-                        executor.map(
-                            process_line, decoded_lines, [all_urls] * len(decoded_lines)
-                        )
-                    )
+                    proxies_lists.append(executor.map(process_line, decoded_lines, [all_urls] * len(decoded_lines)))
                 elif subscription.kind == Subscription.SubscriptionKind.BASE64:
                     decoded = [decode_line(line) for line in r.iter_lines()]
                     flatten_decoded = list(flatten(decoded))

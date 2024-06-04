@@ -1,6 +1,7 @@
 import requests
 from django.utils.timezone import now
 from django.conf import settings
+from requests.exceptions import InvalidJSONError
 
 
 def get_proxy_location(proxy_url):
@@ -8,9 +9,11 @@ def get_proxy_location(proxy_url):
 
     if r.status_code != 200:
         return None
-
-    output = r.json()
-    if "YourFuckingLocation" not in output:
+    try:
+        output = r.json()
+        if "YourFuckingLocation" not in output:
+            return None
+    except InvalidJSONError:
         return None
 
     return output
